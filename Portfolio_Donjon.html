@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portfolio de Baptiste – Le Donjon du Code</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Cinzel+Decorative:wght@700&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; cursor: none; }
+
+        body {
+            background: url('C:/Users/Utilisateur/Desktop/Projet HTML Andrew/Capture d’écran 2026-04-09 155656.png') repeat #060402;
+            background-size: 270px 270px;
+            overflow: hidden;
+            height: 100vh;
+            font-family: 'IM Fell English', Georgia, serif;
+        }
+
+        canvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            z-index: 0;
+        }
+
+        #cursor {
+            position: fixed;
+            width: 18px; height: 18px;
+            border: 1.5px solid #f7d06e;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 9999;
+            box-shadow: 0 0 10px 3px rgba(247,208,110,0.4);
+        }
+
+        #hud {
+            position: fixed;
+            top: 20px; left: 20px;
+            font-family: 'Cinzel', serif;
+            font-size: 12px;
+            color: #c8a84b;
+            text-shadow: 0 0 8px rgba(200,168,75,0.6);
+            z-index: 20;
+            line-height: 1.9;
+        }
+        #hud .name {
+            font-family: 'Cinzel Decorative', serif;
+            font-size: 14px;
+            color: #f7d06e;
+            border-bottom: 1px solid rgba(212,175,55,0.35);
+            padding-bottom: 5px;
+            margin-bottom: 6px;
+            letter-spacing: 1px;
+        }
+
+        #legend {
+            position: fixed;
+            bottom: 22px; left: 22px;
+            font-family: 'Cinzel', serif;
+            font-size: 11px;
+            color: rgba(200,168,75,0.7);
+            z-index: 20;
+            line-height: 2;
+            border: 1px solid rgba(212,175,55,0.2);
+            background: rgba(4,3,1,0.85);
+            padding: 12px 16px;
+            border-radius: 6px;
+        }
+        #legend strong { color: #d4af37; display: block; margin-bottom: 4px; }
+
+        #discovered {
+            position: fixed;
+            bottom: 22px; right: 22px;
+            font-family: 'Cinzel', serif;
+            font-size: 11px;
+            color: rgba(200,168,75,0.7);
+            z-index: 20;
+            line-height: 2;
+            border: 1px solid rgba(212,175,55,0.2);
+            background: rgba(4,3,1,0.85);
+            padding: 12px 16px;
+            border-radius: 6px;
+            max-width: 220px;
+        }
+        #discovered strong { color: #d4af37; display: block; margin-bottom: 4px; }
+
+        #hint {
+            position: fixed;
+            top: 22px; right: 22px;
+            font-family: 'Cinzel', serif;
+            font-size: 12px;
+            color: rgba(200,168,75,0.8);
+            z-index: 20;
+            border: 1px solid rgba(212,175,55,0.25);
+            background: rgba(4,3,1,0.85);
+            padding: 10px 16px;
+            border-radius: 6px;
+            text-align: right;
+        }
+        #hint .zone-name { color: #f7d06e; font-size: 14px; display: block; margin-bottom: 4px; }
+        #hint .zone-tip  { color: rgba(212,175,55,0.55); font-style: italic; font-size: 11px; }
+
+        /* ══ MODAL ══ */
+        #modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(2,1,0,0.92);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .4s ease;
+        }
+        #modal-overlay.open { opacity: 1; pointer-events: all; }
+
+        #modal {
+            position: relative;
+            width: min(860px, 94vw);
+            max-height: 88vh;
+            overflow-y: auto;
+            background: #0c0900;
+            border: 2px solid rgba(212,175,55,0.6);
+            border-radius: 12px;
+            box-shadow: 0 0 60px rgba(212,175,55,0.08);
+            padding: 44px 52px;
+            transform: translateY(20px);
+            transition: transform .4s ease;
+            scrollbar-width: thin;
+            scrollbar-color: #d4af37 transparent;
+        }
+        #modal-overlay.open #modal { transform: translateY(0); }
+        #modal::-webkit-scrollbar { width: 4px; }
+        #modal::-webkit-scrollbar-thumb { background: #d4af37; border-radius: 2px; }
+
+        #modal-close {
+            position: absolute;
+            top: 18px; right: 22px;
+            font-family: 'Cinzel', serif;
+            font-size: 13px;
+            color: rgba(212,175,55,0.5);
+            cursor: pointer;
+            letter-spacing: 1px;
+            transition: color .2s;
+        }
+        #modal-close:hover { color: #f7d06e; }
+
+        #modal-icon {
+            font-size: 36px;
+            display: block;
+            text-align: center;
+            margin-bottom: 14px;
+        }
+
+        #modal h2 {
+            font-family: 'Cinzel Decorative', serif;
+            font-size: clamp(1.3rem, 3vw, 2rem);
+            color: #f7d06e;
+            text-align: center;
+            letter-spacing: 2px;
+            margin-bottom: 6px;
+        }
+        .modal-sub {
+            text-align: center;
+            font-family: 'Cinzel', serif;
+            font-size: 12px;
+            color: rgba(212,175,55,0.4);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-bottom: 36px;
+        }
+
+        .divider { border: none; border-top: 1px solid rgba(212,175,55,0.2); margin: 28px 0; }
+
+        #modal-body p {
+            font-family: 'IM Fell English', Georgia, serif;
+            color: #e8d89a;
+            font-size: 1.05rem;
+            line-height: 1.9;
+            text-align: justify;
+            margin-bottom: 14px;
+            letter-spacing: 0.02em;
+        }
+        #modal-body p em { color: #ffd470; font-style: normal; }
+
+        .tag-grid { display: flex; flex-wrap: wrap; gap: 10px; margin: 18px 0; }
+        .tag {
+            font-family: 'Cinzel', serif;
+            font-size: 12px;
+            color: #d4af37;
+            border: 1px solid rgba(212,175,55,0.45);
+            border-radius: 4px;
+            padding: 6px 14px;
+            letter-spacing: 0.5px;
+            background: rgba(212,175,55,0.06);
+        }
+
+        .project-card {
+            border: 1px solid rgba(212,175,55,0.3);
+            border-radius: 8px;
+            padding: 20px 24px;
+            margin-bottom: 16px;
+            background: rgba(212,175,55,0.04);
+        }
+        .project-card h3 {
+            font-family: 'Cinzel', serif;
+            font-size: 14px;
+            color: #f7d06e;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+        .project-card p { margin: 0; font-size: 0.97rem; line-height: 1.7; text-align: left; }
+        .status {
+            display: inline-block;
+            font-family: 'Cinzel', serif;
+            font-size: 10px;
+            color: #d4af37;
+            border: 1px solid rgba(212,175,55,0.4);
+            border-radius: 3px;
+            padding: 2px 8px;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+        .status.wip { color: #ff9345; border-color: rgba(255,147,69,0.4); }
+
+        .xp-card { border-left: 2px solid rgba(212,175,55,0.5); padding: 0 0 0 20px; margin-bottom: 24px; }
+        .xp-card h3 { font-family: 'Cinzel', serif; font-size: 13px; color: #f7d06e; margin-bottom: 4px; }
+        .xp-company {
+            font-family: 'Cinzel', serif;
+            font-size: 11px;
+            color: rgba(212,175,55,0.5);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+        .xp-card p { font-size: 0.97rem; text-align: left; margin-bottom: 8px; }
+
+        .contact-link {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            font-family: 'IM Fell English', Georgia, serif;
+            color: #e8d89a;
+            font-size: 1rem;
+            padding: 14px 20px;
+            border: 1px solid rgba(212,175,55,0.25);
+            border-radius: 8px;
+            margin-bottom: 12px;
+            text-decoration: none;
+            background: rgba(212,175,55,0.04);
+            transition: border-color .2s, background .2s, color .2s;
+        }
+        .contact-link:hover { border-color: rgba(212,175,55,0.7); background: rgba(212,175,55,0.1); color: #ffd470; }
+        .contact-icon { font-size: 20px; flex-shrink: 0; }
+        .contact-label {
+            font-family: 'Cinzel', serif;
+            font-size: 11px;
+            color: rgba(212,175,55,0.5);
+            letter-spacing: 1px;
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .btn-close {
+            display: block;
+            margin: 32px auto 0;
+            font-family: 'Cinzel', serif;
+            font-size: 12px;
+            color: rgba(212,175,55,0.5);
+            letter-spacing: 2px;
+            background: none;
+            border: 1px solid rgba(212,175,55,0.25);
+            border-radius: 4px;
+            padding: 10px 28px;
+            transition: color .2s, border-color .2s;
+        }
+        .btn-close:hover { color: #f7d06e; border-color: rgba(212,175,55,0.7); cursor: pointer; }
+
+        #intro {
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 5;
+            pointer-events: none;
+            opacity: 1;
+            transition: opacity 1.8s;
+        }
+        #intro h1 {
+            font-family: 'Cinzel Decorative', serif;
+            font-size: clamp(1.4rem, 3.5vw, 2.5rem);
+            color: #f7d06e;
+            letter-spacing: 3px;
+            margin-bottom: 12px;
+        }
+        #intro .tagline {
+            font-family: 'Cinzel', serif;
+            color: rgba(212,175,55,0.45);
+            font-size: 0.9rem;
+            letter-spacing: 3px;
+        }
+        #intro.hidden { opacity: 0; }
+
+        @media (max-width: 600px) {
+            #modal { padding: 28px 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="cursor"></div>
+<canvas id="gameCanvas"></canvas>
+
+<div id="intro">
+    <h1>Portfolio de Baptiste</h1>
+    <p class="tagline">Explorez le donjon</p>
+</div>
+
+<div id="hud">
+    <div class="name">Baptiste Bagieu</div>
+    <div>Torche : Active</div>
+    <div id="coords">Pos : 0, 0</div>
+</div>
+
+<div id="hint">
+    <span class="zone-name" id="hint-name">Ténèbres</span>
+    <span class="zone-tip" id="hint-tip">Déplacez-vous pour explorer</span>
+</div>
+
+<div id="legend">
+    <strong>CONTRÔLES</strong>
+    Z Q S D ou Flèches — Déplacer<br>
+    Entrée ou Clic — Ouvrir une section<br>
+    Échap — Fermer
+</div>
+
+<div id="discovered">
+    <strong>ZONES</strong>
+    <div id="disc-list">Aucune découverte</div>
+</div>
+
+<div id="modal-overlay">
+    <div id="modal">
+        <span id="modal-close" onclick="closeModal()">[ FERMER ]</span>
+        <h2 id="modal-title"></h2>
+        <p class="modal-sub" id="modal-sub"></p>
+        <div id="modal-body"></div>
+        <button class="btn-close" onclick="closeModal()">— Reprendre l'exploration —</button>
+    </div>
+</div>
+
+<script>
+const canvas  = document.getElementById('gameCanvas');
+const ctx     = canvas.getContext('2d');
+const cursorEl = document.getElementById('cursor');
+const intro   = document.getElementById('intro');
+const overlay = document.getElementById('modal-overlay');
+
+canvas.width  = innerWidth;
+canvas.height = innerHeight;
+window.addEventListener('resize', () => {
+    canvas.width = innerWidth; canvas.height = innerHeight; repositionZones();
+});
+
+document.addEventListener('mousemove', e => {
+    cursorEl.style.left = e.clientX + 'px';
+    cursorEl.style.top  = e.clientY + 'px';
+    mouse.x = e.clientX; mouse.y = e.clientY;
+});
+
+let player = { x: innerWidth/2, y: innerHeight/2, speed: 3, torchRadius: 165 };
+let mouse  = { x: innerWidth/2, y: innerHeight/2 };
+const keys = {};
+let modalOpen = false, introGone = false, tick = 0, activeZone = null;
+
+/* ══ SECTIONS PORTFOLIO ══ */
+const SECTIONS = {
+    accueil: {
+        title:'Accueil', sub:'Bienvenue dans le donjon du code',
+        html: `
+            <p>Bonjour ! Je suis <em>Baptiste Bagieu</em>, étudiant en licence au <em>CESI</em>, passionné par la programmation et la conception de jeux vidéo.</p>
+            <p>Je programme actuellement un <em>RPG de type quiz</em> : un jeu complet en Python incluant un système de menus, une fonctionnalité de sauvegarde et une interface graphique — ce projet me permet de m'exercer à la conception de jeux et à la logique de programmation.</p>
+            <p>Ce portfolio interactif prend la forme d'un donjon : explorez l'obscurité avec votre torche et entrez dans chaque zone pour découvrir mon profil, mes compétences et mes projets.</p>
+        `
+    },
+    competences: {
+        title:'Compétences', sub:'Mes armes et outils',
+        html: `
+            <p>Voici les langages et technologies que je maîtrise, acquis au fil de ma formation et de mes projets :</p>
+            <div class="tag-grid">
+                <span class="tag">C#</span>
+                <span class="tag">Python</span>
+                <span class="tag">SQL</span>
+                <span class="tag">HTML / CSS</span>
+                <span class="tag">Java</span>
+                <span class="tag">Unity</span>
+                <span class="tag">Git</span>
+                <span class="tag">Tkinter</span>
+            </div>
+            <p>Je suis à l'aise aussi bien avec la <em>programmation orientée objet</em> (Java, C#) qu'avec la conception d'interfaces graphiques (Tkinter, HTML/CSS) ou le traitement de données (Python, SQL). Mon stage chez Pristimantis m'a également ouvert à l'écosystème <em>Unity et la réalité virtuelle</em>.</p>
+        `
+    },
+    projets: {
+        title:'Projets', sub:'Ce que j\'ai construit',
+        html: `
+            <div class="project-card">
+                <span class="status">Terminé</span>
+                <h3>Clavier d'Or</h3>
+                <p>Quiz-game développé en <em>Python</em> avec interface graphique <em>Tkinter</em>. Le jeu propose des questions à choix multiples, un système de score et une navigation par menus — premier projet alliant logique de jeu et expérience utilisateur.</p>
+            </div>
+            <div class="project-card">
+                <span class="status">Terminé</span>
+                <h3>Nettoyage & Présentation de données</h3>
+                <p>Nettoyage, exploration et visualisation d'un jeu de données réel. Travail sur la qualité des données, la gestion des valeurs manquantes et la présentation claire de résultats statistiques.</p>
+            </div>
+            <div class="project-card">
+                <span class="status wip">En cours</span>
+                <h3>Sport Manage</h3>
+                <p>Application de gestion sportive développée en <em>C#</em>. Permet la gestion d'équipes, de plannings et de résultats sportifs. Ce projet me permet de consolider mes compétences en architecture logicielle et en base de données.</p>
+            </div>
+        `
+    },
+    experience: {
+        title:'Expériences & Stages', sub:'Mon parcours terrain',
+        html: `
+            <div class="xp-card">
+                <h3>Développeur Réalité Virtuelle — Stage</h3>
+                <div class="xp-company">Pristimantis · 2024</div>
+                <p>Contribution à un projet de <em>Réalité Virtuelle</em> en cours de développement sous <em>Unity</em>. Participation active aux tâches de programmation : mise en œuvre de <em>mécanismes de jeu</em>, d'interactions entre objets et d'éléments d'interface utilisateur.</p>
+                <p>Aide au <em>développement, test et débogage</em> de fonctionnalités VR afin d'améliorer les performances, la convivialité et l'expérience utilisateur globale du projet.</p>
+            </div>
+            <hr class="divider">
+            <p>Cette expérience en environnement professionnel m'a permis de travailler en équipe sur une base de code existante, de prendre en main un moteur de jeu avancé et de comprendre les contraintes spécifiques au développement VR.</p>
+        `
+    },
+    formation: {
+        title:'Formation', sub:'Mon parcours académique',
+        html: `
+            <div class="xp-card">
+                <h3>Licence Informatique</h3>
+                <div class="xp-company">CESI · En cours</div>
+                <p>Formation pluridisciplinaire couvrant les fondamentaux du développement logiciel, des bases de données, des réseaux et de la gestion de projet. Apprentissage de plusieurs langages et paradigmes de programmation en environnement professionnel simulé.</p>
+            </div>
+            <hr class="divider">
+            <p>En parallèle de ma formation, je développe mes compétences de manière <em>autonome</em> : conception de jeux vidéo, exploration de nouvelles technologies, et pratique régulière de projets personnels pour consolider mes acquis et aller plus loin que le programme.</p>
+        `
+    },
+    contact: {
+        title:'Contact', sub:'Entrer en contact',
+        html: `
+            <p>Je suis disponible pour des <em>stages, alternances ou projets collaboratifs</em>. N'hésitez pas à me contacter !</p>
+            <a class="contact-link" href="mailto:baptistebagieu@gmail.com">
+                <span class="contact-icon"></span>
+                <span>
+                    <span class="contact-label">EMAIL</span>
+                    baptistebagieu@gmail.com
+                </span>
+            </a>
+            <a class="contact-link" href="https://www.linkedin.com/in/baptiste-bagieu-b84296389/" target="_blank">
+                <span class="contact-icon"></span>
+                <span>
+                    <span class="contact-label">LINKEDIN</span>
+                    Baptiste Bagieu
+                </span>
+            </a>
+        `
+    },
+    apropos: {
+        title:'À propos', sub:'Ce qui me motive',
+        html: `
+            <p>Ce qui me passionne dans l'informatique, c'est la capacité à <em>créer des expériences</em> à partir de rien — qu'il s'agisse d'un jeu vidéo, d'une application ou d'un outil de traitement de données.</p>
+            <p>Je suis particulièrement attiré par le <em>développement de jeux</em> (game design, logique de gameplay, interfaces) et la <em>programmation orientée objet</em>. Mon projet de RPG quiz en cours illustre bien cet intérêt : combiner mécanique de jeu, sauvegarde persistante et expérience utilisateur en un seul projet cohérent.</p>
+            <p>Curieux, autonome et toujours en apprentissage — je cherche à progresser à chaque projet que j'entreprends et à acquérir de nouvelles compétences au contact de professionnels.</p>
+        `
+    },
+    cta: {
+        title:'Travailler ensemble', sub:'Le défi ultime',
+        html: `
+            <p>Vous avez exploré tout le donjon et découvert mon profil. Si mon parcours vous intéresse, je serais ravi d'<em>échanger avec vous</em> !</p>
+            <p>Je recherche des opportunités pour mettre mes compétences à l'épreuve, apprendre aux côtés de professionnels et contribuer à des projets ambitieux.</p>
+            <a class="contact-link" href="mailto:baptistebagieu@gmail.com">
+                <span class="contact-icon"></span>
+                <span>
+                    <span class="contact-label">CONTACTEZ-MOI</span>
+                    baptistebagieu@gmail.com
+                </span>
+            </a>
+            <a class="contact-link" href="https://www.linkedin.com/in/baptiste-bagieu-b84296389/" target="_blank">
+                <span class="contact-icon"></span>
+                <span>
+                    <span class="contact-label">LINKEDIN</span>
+                    Baptiste Bagieu
+                </span>
+            </a>
+        `
+    }
+};
+
+/* ══ ZONES DONJON ══ */
+function makeZones() {
+    const cx = innerWidth/2, cy = innerHeight/2;
+    return [
+        { id:'accueil',     name:'Accueil',              x:cx,       y:cy,       radius:90, discovered:false },
+        { id:'competences', name:'Compétences',           x:cx-330,  y:cy+270,  radius:72, discovered:false },
+        { id:'projets',     name:'Projets',               x:cx+340,  y:cy-220,  radius:72, discovered:false },
+        { id:'experience',  name:'Expériences',           x:cx+320,  y:cy+260,  radius:72, discovered:false },
+        { id:'formation',   name:'Formation',             x:cx-350,  y:cy-220,  radius:72, discovered:false },
+        { id:'contact',     name:'Contact',               x:cx,       y:cy-320,  radius:72, discovered:false },
+        { id:'apropos',     name:'À propos',              x:cx-260,  y:cy,      radius:68, discovered:false },
+        { id:'cta',         name:'Travailler ensemble',   x:cx+265,  y:cy,      radius:68, discovered:false }
+    ];
+}
+
+let zones = makeZones();
+function repositionZones() {
+    const fresh = makeZones();
+    zones.forEach((z,i) => { z.x=fresh[i].x; z.y=fresh[i].y; });
+    player.x = innerWidth/2; player.y = innerHeight/2;
+}
+
+const particles = Array.from({length:70}, () => ({
+    x: Math.random()*innerWidth, y: Math.random()*innerHeight,
+    r: Math.random()*1.4+0.3,
+    vx: (Math.random()-.5)*.25, vy: (Math.random()-.5)*.25,
+    a: Math.random()*.5+.1
+}));
+
+document.addEventListener('keydown', e => {
+    keys[e.key.toLowerCase()] = true;
+    if (e.key === 'Escape') closeModal();
+    if (e.key === 'Enter' && activeZone && !modalOpen) openModal(activeZone);
+});
+document.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+canvas.addEventListener('click', () => { if (activeZone && !modalOpen) openModal(activeZone); });
+
+function openModal(zone) {
+    const s = SECTIONS[zone.id];
+    if (!s) return;
+    document.getElementById('modal-title').textContent = s.title;
+    document.getElementById('modal-sub').textContent   = s.sub;
+    document.getElementById('modal-body').innerHTML    = s.html;
+    overlay.classList.add('open');
+    modalOpen = true;
+}
+function closeModal() { overlay.classList.remove('open'); modalOpen = false; }
+overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+
+function updatePlayer() {
+    if (modalOpen) return;
+    const dirs = {arrowup:[0,-1],z:[0,-1],arrowdown:[0,1],s:[0,1],arrowleft:[-1,0],q:[-1,0],arrowright:[1,0],d:[1,0]};
+    let moved = false;
+    for (const [k,[dx,dy]] of Object.entries(dirs)) {
+        if (keys[k]) { player.x += dx*player.speed; player.y += dy*player.speed; moved = true; }
+    }
+    if (moved && !introGone) { introGone = true; intro.classList.add('hidden'); }
+    player.x = Math.max(0, Math.min(canvas.width,  player.x));
+    player.y = Math.max(0, Math.min(canvas.height, player.y));
+}
+
+function checkZones() {
+    if (modalOpen) return;
+    activeZone = null;
+    let closestDist = Infinity;
+    zones.forEach(zone => {
+        const dist = Math.hypot(player.x-zone.x, player.y-zone.y);
+        if (dist < player.torchRadius + zone.radius) {
+            if (!zone.discovered) { zone.discovered = true; updateDiscList(); }
+            if (dist < zone.radius + 35 && dist < closestDist) {
+                closestDist = dist; activeZone = zone;
+            }
+        }
+    });
+    const hintName = document.getElementById('hint-name');
+    const hintTip  = document.getElementById('hint-tip');
+    if (activeZone) {
+        hintName.textContent = activeZone.name;
+        hintTip.textContent  = 'Entrée ou Clic pour ouvrir';
+    } else {
+        const near = zones.find(z => Math.hypot(player.x-z.x, player.y-z.y) < player.torchRadius);
+        hintName.textContent = near ? near.name : '⚫ Ténèbres';
+        hintTip.textContent  = near ? 'Approchez-vous davantage' : 'Déplacez-vous pour explorer';
+    }
+}
+
+function updateDiscList() {
+    const disc = zones.filter(z => z.discovered);
+    document.getElementById('disc-list').innerHTML =
+        disc.length === 0 ? 'Aucune découverte'
+        : disc.map(z => `✓ ${z.name}`).join('<br>');
+}
+
+function draw() {
+    tick++;
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    // Dalles
+    ctx.strokeStyle = 'rgba(212,175,55,0.035)'; ctx.lineWidth = 1;
+    const T = 90;
+    for (let x=0; x<canvas.width; x+=T) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); ctx.stroke(); }
+    for (let y=0; y<canvas.height; y+=T) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke(); }
+
+    // Particules
+    particles.forEach(p => {
+        p.x += p.vx; p.y += p.vy;
+        if (p.x<0) p.x=canvas.width; if (p.x>canvas.width) p.x=0;
+        if (p.y<0) p.y=canvas.height; if (p.y>canvas.height) p.y=0;
+        const d = Math.hypot(p.x-player.x, p.y-player.y);
+        if (d < player.torchRadius) {
+            ctx.fillStyle = `rgba(212,175,55,${p.a*(1-d/player.torchRadius)*.55})`;
+            ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill();
+        }
+    });
+
+    // Zones
+    zones.forEach(zone => {
+        const dist = Math.hypot(player.x-zone.x, player.y-zone.y);
+        if (dist > player.torchRadius + zone.radius + 20) return;
+        const opacity = Math.max(0.05, Math.min(1, 1-(dist-zone.radius)/player.torchRadius));
+        const pulse   = zone.discovered ? 1 : 0.55+0.45*Math.sin(tick*0.05);
+        const isActive = activeZone && activeZone.id === zone.id;
+
+        const grd = ctx.createRadialGradient(zone.x,zone.y,0,zone.x,zone.y,zone.radius);
+        grd.addColorStop(0,  `rgba(212,175,55,${opacity*0.22*pulse})`);
+        grd.addColorStop(0.7,`rgba(180,130,30,${opacity*0.07})`);
+        grd.addColorStop(1,  'rgba(0,0,0,0)');
+        ctx.fillStyle = grd;
+        ctx.beginPath(); ctx.arc(zone.x,zone.y,zone.radius,0,Math.PI*2); ctx.fill();
+
+        ctx.strokeStyle = isActive
+            ? `rgba(255,220,100,${opacity})`
+            : zone.discovered ? `rgba(212,175,55,${opacity*.8})` : `rgba(212,175,55,${opacity*.35*pulse})`;
+        ctx.lineWidth = isActive ? 3 : zone.discovered ? 2 : 1.5;
+        ctx.beginPath(); ctx.arc(zone.x,zone.y,zone.radius,0,Math.PI*2); ctx.stroke();
+
+        if (isActive) {
+            ctx.strokeStyle = `rgba(255,220,100,${opacity*.2})`; ctx.lineWidth = 8;
+            ctx.beginPath(); ctx.arc(zone.x,zone.y,zone.radius+10,0,Math.PI*2); ctx.stroke();
+        }
+
+        ctx.fillStyle = isActive ? `rgba(255,235,140,${opacity})` : `rgba(255,160,80,${opacity*.9})`;
+        ctx.font = `bold ${isActive?14:13}px 'Cinzel',serif`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(zone.name, zone.x, zone.y+3);
+
+        if (isActive) {
+            ctx.fillStyle = `rgba(255,235,140,${opacity*.65})`;
+            ctx.font = `11px 'Cinzel',serif`;
+            ctx.fillText('[ ENTRER ]', zone.x, zone.y+zone.radius+18);
+        }
+    });
+
+    // Joueur
+    const fl = 1+0.06*Math.sin(tick*0.14);
+    ctx.fillStyle = '#ffeb3b';
+    ctx.beginPath(); ctx.arc(player.x,player.y,7*fl,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle = '#d4af37'; ctx.lineWidth = 2; ctx.stroke();
+
+    const tg = ctx.createRadialGradient(player.x,player.y,0,player.x,player.y,player.torchRadius*fl);
+    tg.addColorStop(0,'rgba(255,235,59,0.16)');
+    tg.addColorStop(0.4,'rgba(255,140,50,0.06)');
+    tg.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle = tg;
+    ctx.beginPath(); ctx.arc(player.x,player.y,player.torchRadius*fl,0,Math.PI*2); ctx.fill();
+
+    ctx.strokeStyle = 'rgba(255,235,59,0.10)'; ctx.lineWidth=1; ctx.setLineDash([4,7]);
+    ctx.beginPath(); ctx.moveTo(player.x,player.y); ctx.lineTo(mouse.x,mouse.y); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Masque
+    const mask = ctx.createRadialGradient(player.x,player.y,player.torchRadius*.55,player.x,player.y,player.torchRadius*1.55);
+    mask.addColorStop(0,'rgba(0,0,0,0)'); mask.addColorStop(1,'rgba(0,0,0,1)');
+    ctx.fillStyle = mask;
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    document.getElementById('coords').textContent = `Pos : ${Math.round(player.x)}, ${Math.round(player.y)}`;
+}
+
+function loop() { updatePlayer(); checkZones(); draw(); requestAnimationFrame(loop); }
+loop();
+</script>
+</body>
+</html>
